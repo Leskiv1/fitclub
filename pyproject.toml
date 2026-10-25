@@ -1,0 +1,20 @@
+[project]
+name = "fitclub"
+version = "0.1.0"
+description = "Fitness club management system"
+requires-python = ">=3.14"
+
+[tool.ruff]
+line-length = 110
+target-version = "py314"
+extend-exclude = ["docs", "frontend", "backend/alembic/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "N", "SIM"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.pytest.ini_options]
+pythonpath = ["backend"]
+testpaths = ["tests"]

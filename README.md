@@ -27,9 +27,9 @@
 | Адміністратор клубу | Керування тренерами, залами, розкладом, тарифами й налаштуваннями; звіти |
 
 ## Технологічний стек
-- **Backend:** Python 3.12, FastAPI, SQLAlchemy 2, Alembic, Pydantic v2, JWT, APScheduler
-- **База даних:** PostgreSQL (Docker Compose)
-- **Frontend:** React (JavaScript, Vite), React Router, Axios, Recharts
+- **Backend:** Python 3.14, FastAPI, SQLAlchemy 2, Alembic, Pydantic v2, JWT, APScheduler
+- **База даних:** PostgreSQL 16 (Docker Compose)
+- **Frontend:** React (JavaScript, Vite), Ant Design, React Router, Axios, Recharts
 - **Якість коду:** ruff, ESLint, Prettier
 
 ## Архітектура
@@ -48,10 +48,68 @@ Chain of Responsibility, Command, Observer та інші), принципах SO
 
 ## Структура репозиторію
 ```
-backend/    — FastAPI-застосунок і міграції Alembic
-frontend/   — React-застосунок
-diagrams/   — UML-діаграми (PNG)
+backend/
+  app/
+    api/            — REST-роутери (FastAPI)
+    services/       — сервіси: сценарії використання
+    domain/         — доменні моделі та шаблони проектування
+    repositories/   — доступ до бази даних
+    schemas/        — Pydantic-схеми (DTO) запитів і відповідей
+    core/           — налаштування, підключення до БД
+    main.py         — точка входу застосунку
+  alembic/          — міграції бази даних
+frontend/
+  src/
+    api/            — HTTP-клієнт (Axios) і запити до API
+    pages/          — сторінки застосунку
+    theme/          — тема Ant Design
+diagrams/           — UML-діаграми (PNG)
+docker-compose.yml  — PostgreSQL
+.env.example        — приклад змінних середовища
 ```
 
 ## Розгортання і запуск
-Детальна інструкція з'явиться разом із каркасом проєкту.
+
+### Вимоги
+- [Python 3.14](https://www.python.org/downloads/)
+- [Node.js 24](https://nodejs.org/) (разом із npm)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (для PostgreSQL)
+
+### 1. Змінні середовища
+Скопіюйте `.env.example` у `.env` у корені проєкту і за потреби змініть пароль бази даних
+(його треба змінити і в `POSTGRES_PASSWORD`, і в `DATABASE_URL`):
+```bash
+cp .env.example .env
+```
+PostgreSQL з Docker доступний на порту `5433`, щоб не конфліктувати з локально встановленим PostgreSQL.
+
+### 2. База даних
+```bash
+docker compose up -d
+```
+
+### 3. Backend
+```bash
+cd backend
+python -m venv .venv
+# Windows: .venv\Scripts\activate    Linux / macOS: source .venv/bin/activate
+pip install -r requirements.txt
+alembic upgrade head
+uvicorn app.main:app --reload
+```
+API доступне на http://localhost:8000, документація Swagger — http://localhost:8000/docs.
+
+### 4. Frontend
+```bash
+cd frontend
+npm install
+npm run dev
+```
+Застосунок відкривається на http://localhost:5173. Запити до `/api` Vite перенаправляє на backend.
+
+### Перевірка якості коду
+```bash
+pip install -r backend/requirements-dev.txt
+ruff check .                 # лінтер Python (з кореня проєкту)
+cd frontend && npm run lint  # ESLint
+```
