@@ -64,6 +64,7 @@ frontend/
     pages/          — сторінки застосунку
     theme/          — тема Ant Design
 diagrams/           — UML-діаграми (PNG)
+seed/               — скрипт демо-даних
 docker-compose.yml  — PostgreSQL
 .env.example        — приклад змінних середовища
 ```
@@ -116,6 +117,17 @@ npm install
 npm run dev
 ```
 Застосунок відкривається на http://localhost:5173. Запити до `/api` Vite перенаправляє на backend.
+
+### Демо-дані (необов'язково)
+Щоб наповнити базу прикладами (клієнти, тренери, тарифи, абонементи, відвідування й заняття за кілька
+останніх тижнів), виконайте з кореня проєкту після `alembic upgrade head`:
+```bash
+python seed/seed_demo.py          # з активованим віртуальним середовищем backend
+```
+Скрипт очищає всі таблиці, крім налаштувань клубу, і заповнює їх заново; дати рахуються від поточного дня.
+Демо-облікові записи: `admin@fitclub.example` / `admin123`, `reception@fitclub.example` / `reception123`,
+`trainer1@fitclub.example` … `trainer4@fitclub.example` / `trainer123`,
+`client1@fitclub.example` … `client25@fitclub.example` / `client123`.
 
 ### Перевірка якості коду
 ```bash

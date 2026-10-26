@@ -5,6 +5,7 @@ from app.domain.models.client import Client
 from app.domain.models.club_settings import ClubSettings
 from app.domain.models.enums import (
     BookingStatus,
+    DiscountType,
     MembershipStatus,
     NotificationChannel,
     NotificationStatus,
@@ -17,6 +18,7 @@ from app.domain.models.enums import (
 from app.domain.models.hall import Hall
 from app.domain.models.membership import Membership, Payment, membership_option_links
 from app.domain.models.notification import Notification
+from app.domain.models.promo_code import PromoCode
 from app.domain.models.tariff import MembershipOption, TariffPlan
 from app.domain.models.trainer import Trainer, WorkShift
 from app.domain.models.training import GroupSession, IndividualSession, TrainingSession
@@ -28,6 +30,7 @@ __all__ = [
     "BookingStatus",
     "Client",
     "ClubSettings",
+    "DiscountType",
     "GroupSession",
     "Hall",
     "IndividualSession",
@@ -40,6 +43,7 @@ __all__ = [
     "Payment",
     "PaymentMethod",
     "PaymentStatus",
+    "PromoCode",
     "Role",
     "SessionKind",
     "TariffPlan",

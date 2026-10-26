@@ -4,13 +4,20 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import CheckConstraint, Column, Date, DateTime, ForeignKey, Numeric, Table, func
+from sqlalchemy import CheckConstraint, Column, Date, DateTime, ForeignKey, Numeric, String, Table, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
-from app.domain.models.enums import MembershipStatus, PaymentMethod, PaymentStatus, str_enum
+from app.domain.models.enums import (
+    DiscountType,
+    MembershipStatus,
+    PaymentMethod,
+    PaymentStatus,
+    str_enum,
+)
 
 if TYPE_CHECKING:
+    from app.domain.membership.states import MembershipState
     from app.domain.models.client import Client
     from app.domain.models.tariff import MembershipOption, TariffPlan
     from app.domain.models.visit import Visit
@@ -31,6 +38,8 @@ class Membership(Base):
         CheckConstraint("end_date >= start_date", name="date_order"),
         CheckConstraint("visits_left IS NULL OR visits_left >= 0", name="visits_left_non_negative"),
         CheckConstraint("total_price >= 0", name="total_price_non_negative"),
+        CheckConstraint("discount_amount >= 0", name="discount_non_negative"),
+        CheckConstraint("frozen_days >= 0", name="frozen_days_non_negative"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -43,6 +52,13 @@ class Membership(Base):
         str_enum(MembershipStatus), default=MembershipStatus.PENDING
     )
     total_price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
+    discount_type: Mapped[DiscountType | None] = mapped_column(str_enum(DiscountType))
+    discount_reference: Mapped[str | None] = mapped_column(
+        String(50), comment="Student card number or promo code the discount was granted for"
+    )
+    discount_amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal("0"))
+    frozen_at: Mapped[date | None] = mapped_column(Date)
+    frozen_days: Mapped[int] = mapped_column(default=0, comment="Total days the membership has been frozen")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     client: Mapped[Client] = relationship(back_populates="memberships")
@@ -61,6 +77,32 @@ class Membership(Base):
     def days_left(self, today: date | None = None) -> int:
         today = today or date.today()
         return max(0, (self.end_date - today).days)
+
+    # --- GoF State: Context — the behaviour below depends on the current status ---
+
+    @property
+    def state(self) -> MembershipState:
+        from app.domain.membership.states import state_for  # states use the model, avoid a cycle
+
+        return state_for(self.status)
+
+    def activate(self) -> None:
+        self.state.activate(self)
+
+    def check_in(self, moment: datetime) -> Visit:
+        return self.state.check_in(self, moment)
+
+    def freeze(self, on: date) -> None:
+        self.state.freeze(self, on)
+
+    def unfreeze(self, on: date) -> None:
+        self.state.unfreeze(self, on)
+
+    def cancel(self) -> None:
+        self.state.cancel(self)
+
+    def expire(self) -> None:
+        self.state.expire(self)
 
 
 class Payment(Base):

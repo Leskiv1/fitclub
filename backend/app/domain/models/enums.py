@@ -49,6 +49,12 @@ class BookingStatus(StrEnum):
     ATTENDED = "attended"
 
 
+class DiscountType(StrEnum):
+    STUDENT = "student"
+    LOYALTY = "loyalty"
+    PROMO = "promo"
+
+
 class NotificationChannel(StrEnum):
     EMAIL = "email"
     SMS = "sms"
