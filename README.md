@@ -76,8 +76,8 @@ docker-compose.yml  — PostgreSQL
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (для PostgreSQL)
 
 ### 1. Змінні середовища
-Скопіюйте `.env.example` у `.env` у корені проєкту і за потреби змініть пароль бази даних
-(його треба змінити і в `POSTGRES_PASSWORD`, і в `DATABASE_URL`):
+Скопіюйте `.env.example` у `.env` у корені проєкту, змініть пароль бази даних (і в `POSTGRES_PASSWORD`,
+і в `DATABASE_URL`) та задайте власний `JWT_SECRET` — випадковий рядок щонайменше з 32 символів:
 ```bash
 cp .env.example .env
 ```
@@ -98,7 +98,16 @@ alembic upgrade head
 uvicorn app.main:app --reload
 ```
 Команда `alembic upgrade head` створює таблиці бази даних і запис налаштувань клубу за замовчуванням.
+
+Перед першим запуском створіть обліковий запис адміністратора (з каталогу `backend`):
+```bash
+python -m app.cli create-admin --email admin@example.com --password <пароль-від-8-символів>
+```
+Решту користувачів (рецепцію, тренерів, клієнтів) адміністратор додає через застосунок; клієнти можуть
+також зареєструватися самостійно.
 API доступне на http://localhost:8000, документація Swagger — http://localhost:8000/docs.
+Щоб викликати захищені ендпоінти у Swagger, виконайте `POST /api/auth/login`, скопіюйте `access_token`
+і вставте його у вікні **Authorize**.
 
 ### 4. Frontend
 ```bash

@@ -7,9 +7,18 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError
 
-from app.domain.errors import AppError, BusinessRuleError, ConflictError, NotFoundError
+from app.domain.errors import (
+    AppError,
+    AuthenticationError,
+    BusinessRuleError,
+    ConflictError,
+    NotFoundError,
+    PermissionDeniedError,
+)
 
 STATUS_BY_ERROR: dict[type[AppError], int] = {
+    AuthenticationError: status.HTTP_401_UNAUTHORIZED,
+    PermissionDeniedError: status.HTTP_403_FORBIDDEN,
     NotFoundError: status.HTTP_404_NOT_FOUND,
     ConflictError: status.HTTP_409_CONFLICT,
     BusinessRuleError: status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -43,7 +52,10 @@ async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
         (code for error_type, code in STATUS_BY_ERROR.items() if isinstance(exc, error_type)),
         status.HTTP_400_BAD_REQUEST,
     )
-    return error_response(status_code, exc.code, exc.message)
+    response = error_response(status_code, exc.code, exc.message)
+    if isinstance(exc, AuthenticationError):
+        response.headers["WWW-Authenticate"] = "Bearer"
+    return response
 
 
 async def validation_error_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
@@ -68,6 +80,8 @@ def register_error_handlers(app: FastAPI) -> None:
 
 
 ERROR_RESPONSES = {
+    401: {"model": ErrorResponse, "description": "Потрібно увійти (немає або недійсний токен)"},
+    403: {"model": ErrorResponse, "description": "Недостатньо прав"},
     404: {"model": ErrorResponse, "description": "Не знайдено"},
     409: {"model": ErrorResponse, "description": "Конфлікт з наявними даними"},
     422: {"model": ErrorResponse, "description": "Некоректні дані або порушення бізнес-правила"},

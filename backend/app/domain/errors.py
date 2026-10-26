@@ -28,3 +28,18 @@ class BusinessRuleError(AppError):
     """The request is well-formed but breaks a business rule."""
 
     code = "business_rule_violation"
+
+
+class AuthenticationError(AppError):
+    """Wrong credentials, missing or invalid access token."""
+
+    code = "unauthorized"
+
+
+class PermissionDeniedError(AppError):
+    """The user is signed in but their role does not allow the action."""
+
+    code = "forbidden"
+
+    def __init__(self, message: str = "Недостатньо прав для цієї дії") -> None:
+        super().__init__(message)
