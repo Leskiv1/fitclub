@@ -97,6 +97,7 @@ pip install -r requirements.txt
 alembic upgrade head
 uvicorn app.main:app --reload
 ```
+Команда `alembic upgrade head` створює таблиці бази даних і запис налаштувань клубу за замовчуванням.
 API доступне на http://localhost:8000, документація Swagger — http://localhost:8000/docs.
 
 ### 4. Frontend

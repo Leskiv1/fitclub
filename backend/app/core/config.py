@@ -13,6 +13,7 @@ class Settings(BaseSettings):
 
     app_name: str = "FitClub API"
     database_url: str
+    test_database_url: str | None = None
     cors_origins: list[str] = ["http://localhost:5173"]
 
 
