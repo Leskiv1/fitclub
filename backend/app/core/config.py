@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     jwt_secret: str = Field(min_length=32)
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = Field(480, gt=0)
+    club_timezone: str = "Europe/Kyiv"
 
 
 @lru_cache

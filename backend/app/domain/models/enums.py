@@ -49,6 +49,11 @@ class BookingStatus(StrEnum):
     ATTENDED = "attended"
 
 
+class BookingActionType(StrEnum):
+    BOOK = "book"
+    CANCEL = "cancel"
+
+
 class DiscountType(StrEnum):
     STUDENT = "student"
     LOYALTY = "loyalty"

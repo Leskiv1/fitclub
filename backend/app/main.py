@@ -3,7 +3,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import auth, catalog, clients, health, memberships, trainers
+from app.api import auth, bookings, catalog, check_ins, clients, health, memberships, sessions, trainers
 from app.api.errors import register_error_handlers
 from app.core.config import get_settings
 
@@ -33,6 +33,9 @@ def create_app() -> FastAPI:
         catalog.options,
         memberships.router,
         memberships.promo_codes,
+        check_ins.router,
+        sessions.router,
+        bookings.router,
     ):
         app.include_router(router, prefix="/api")
     return app

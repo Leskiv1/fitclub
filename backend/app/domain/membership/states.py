@@ -63,7 +63,8 @@ class ActiveState(MembershipState):
         if membership.visits_left == 0:
             raise BusinessRuleError("За абонементом не лишилось відвідувань")
 
-        visit = Visit(membership=membership, checked_in_at=moment)
+        # moment is in the club's time zone, so its date is the local day of the visit
+        visit = Visit(membership=membership, checked_in_at=moment, visit_date=moment.date())
         if membership.visits_left is not None:
             membership.visits_left -= 1
             if membership.visits_left == 0:

@@ -34,6 +34,18 @@ class TariffPlanService(CrudService[TariffPlan]):
     def __init__(self, session: Session) -> None:
         super().__init__(session, TariffPlanRepository(session))
 
+    def clone(self, tariff_id: int) -> TariffPlan:
+        """GoF: Prototype — "create based on": an inactive copy with a free name, ready for editing."""
+        original = self.get(tariff_id)
+        name, n = f"{original.name} (копія)", 1
+        while self.repository.get_by(name=name) is not None:
+            n += 1
+            name = f"{original.name} (копія {n})"
+        copy = original.clone(name)
+        self.repository.add(copy)
+        self.session.commit()
+        return copy
+
     def _validate(self, entity: TariffPlan) -> None:
         if entity.type == TariffType.SINGLE_VISIT and entity.visit_limit != 1:
             raise BusinessRuleError("Разовий тариф має дозволяти рівно одне відвідування")

@@ -9,11 +9,13 @@ import sys
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
 
 from sqlalchemy import text  # noqa: E402
 
+from app.core.config import get_settings  # noqa: E402
 from app.core.database import Base, SessionLocal  # noqa: E402
 from app.core.security import hash_password  # noqa: E402
 from app.domain.membership.factories import factory_for  # noqa: E402
@@ -45,7 +47,8 @@ from app.domain.models import (  # noqa: E402
 )
 
 rng = random.Random(42)
-TODAY = date.today()
+CLUB_ZONE = ZoneInfo(get_settings().club_timezone)
+TODAY = datetime.now(CLUB_ZONE).date()
 
 FIRST_NAMES_M = [
     "Олександр",
@@ -92,7 +95,7 @@ LAST_NAMES = [
 
 def local(day: date, at: time) -> datetime:
     """Aware datetime in the machine's local time zone."""
-    return datetime.combine(day, at).astimezone()
+    return datetime.combine(day, at, tzinfo=CLUB_ZONE)
 
 
 def clear(session) -> None:
@@ -248,9 +251,9 @@ def add_visits(membership: Membership, settings: ClubSettings, per_week: float) 
             opens, closes = (time.fromisoformat(h) for h in hours)
             hour = rng.randint(opens.hour, closes.hour - 2)
             checked_in = local(day, time(hour, rng.randint(0, 59)))
-            if day == TODAY and checked_in > datetime.now().astimezone():
+            if day == TODAY and checked_in > datetime.now(CLUB_ZONE):
                 break
-            membership.visits.append(Visit(checked_in_at=checked_in))
+            membership.visits.append(Visit(checked_in_at=checked_in, visit_date=day))
             if membership.visits_left is not None:
                 membership.visits_left -= 1
         day += timedelta(days=1)
@@ -336,7 +339,7 @@ def members_on(clients, day: date) -> list[Client]:
 
 def seed_sessions(session, trainers, halls, clients) -> None:
     week_start = TODAY - timedelta(days=TODAY.weekday())
-    now = datetime.now().astimezone()
+    now = datetime.now(CLUB_ZONE)
     for week in range(-4, 2):  # 4 past weeks for З-3, current and next week for booking
         for weekday, start_time, minutes, title, t_idx, h_idx, places in GROUP_TEMPLATE:
             day = week_start + timedelta(weeks=week, days=weekday)

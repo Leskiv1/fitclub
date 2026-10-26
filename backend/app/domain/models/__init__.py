@@ -1,9 +1,11 @@
 """ORM models of the domain; importing this package registers all of them in Base.metadata."""
 
 from app.domain.models.booking import Booking
+from app.domain.models.booking_action import BookingAction
 from app.domain.models.client import Client
 from app.domain.models.club_settings import ClubSettings
 from app.domain.models.enums import (
+    BookingActionType,
     BookingStatus,
     DiscountType,
     MembershipStatus,
@@ -27,6 +29,8 @@ from app.domain.models.visit import Visit
 
 __all__ = [
     "Booking",
+    "BookingAction",
+    "BookingActionType",
     "BookingStatus",
     "Client",
     "ClubSettings",

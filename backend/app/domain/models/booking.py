@@ -7,7 +7,7 @@ from sqlalchemy import DateTime, ForeignKey, Index, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
-from app.domain.models.enums import BookingStatus, str_enum
+from app.domain.models.enums import BookingStatus, SessionKind, str_enum
 
 if TYPE_CHECKING:
     from app.domain.models.client import Client
@@ -42,3 +42,10 @@ class Booking(Base):
 
     def cancel(self) -> None:
         self.status = BookingStatus.CANCELLED
+        if self.session.kind == SessionKind.INDIVIDUAL:
+            self.session.is_cancelled = True  # an individual session exists only for its one booking
+
+    def restore(self) -> None:
+        self.status = BookingStatus.BOOKED
+        if self.session.kind == SessionKind.INDIVIDUAL:
+            self.session.is_cancelled = False

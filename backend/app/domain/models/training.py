@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta, tzinfo
 from typing import TYPE_CHECKING
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String, func, literal_column
+from sqlalchemy.dialects.postgresql import ExcludeConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -24,6 +25,21 @@ class TrainingSession(Base):
         CheckConstraint(
             "kind <> 'group' OR (title IS NOT NULL AND max_participants > 0)", name="group_fields"
         ),
+        # The database itself forbids double-booking a trainer or a hall, whatever code inserts the rows
+        ExcludeConstraint(
+            ("trainer_id", "="),
+            (func.tstzrange(literal_column("start_at"), literal_column("end_at")), "&&"),
+            name="ex_training_sessions_trainer_overlap",
+            using="gist",
+            where="NOT is_cancelled",
+        ),
+        ExcludeConstraint(
+            ("hall_id", "="),
+            (func.tstzrange(literal_column("start_at"), literal_column("end_at")), "&&"),
+            name="ex_training_sessions_hall_overlap",
+            using="gist",
+            where="NOT is_cancelled",
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -32,6 +48,9 @@ class TrainingSession(Base):
     hall_id: Mapped[int] = mapped_column(ForeignKey("halls.id", ondelete="RESTRICT"), index=True)
     start_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     end_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    is_cancelled: Mapped[bool] = mapped_column(
+        default=False, comment="A cancelled session no longer occupies the trainer and the hall"
+    )
 
     trainer: Mapped[Trainer] = relationship(back_populates="sessions")
     hall: Mapped[Hall] = relationship(back_populates="sessions")
@@ -52,7 +71,7 @@ class TrainingSession(Base):
         return self.free_places() == 0
 
     def overlaps(self, start: datetime, end: datetime) -> bool:
-        return self.start_at < end and start < self.end_at
+        return not self.is_cancelled and self.start_at < end and start < self.end_at
 
 
 class GroupSession(TrainingSession):
@@ -65,6 +84,21 @@ class GroupSession(TrainingSession):
 
     def capacity(self) -> int:
         return self.max_participants or 0
+
+    def clone(self, days: int, zone: tzinfo) -> GroupSession:
+        """GoF: Prototype — a copy of this session `days` later, without bookings.
+
+        The shift is done on the club's wall clock: an 18:00 class stays at 18:00 even across a DST change.
+        """
+        start = self.start_at.astimezone(zone) + timedelta(days=days)
+        return GroupSession(
+            trainer_id=self.trainer_id,
+            hall_id=self.hall_id,
+            title=self.title,
+            max_participants=self.max_participants,
+            start_at=start,
+            end_at=start + (self.end_at - self.start_at),
+        )
 
 
 class IndividualSession(TrainingSession):

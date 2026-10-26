@@ -34,6 +34,18 @@ class TariffPlan(Base):
 
     memberships: Mapped[list[Membership]] = relationship(back_populates="tariff_plan")
 
+    def clone(self, name: str) -> TariffPlan:
+        """GoF: Prototype — a new tariff based on this one; inactive until the administrator reviews it."""
+        return TariffPlan(
+            name=name,
+            type=self.type,
+            price=self.price,
+            duration_days=self.duration_days,
+            visit_limit=self.visit_limit,
+            description=self.description,
+            is_active=False,
+        )
+
 
 class MembershipOption(Base):
     """Paid add-on to a membership: sauna, locker, towel and so on."""

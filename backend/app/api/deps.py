@@ -7,6 +7,7 @@ from fastapi import Depends, Query
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
+from app.core.clock import Clock
 from app.core.database import get_db
 from app.domain.errors import AuthenticationError, PermissionDeniedError
 from app.domain.models import Role, User
@@ -17,6 +18,14 @@ from app.services.clients import ClientService
 from app.services.trainers import TrainerService
 
 DbSession = Annotated[Session, Depends(get_db)]
+
+
+def get_clock() -> Clock:
+    """Current time of the club; replaced by a fixed clock in tests."""
+    return Clock()
+
+
+ClockDep = Annotated[Clock, Depends(get_clock)]
 
 # auto_error=False: a missing token is reported in our own error format, not FastAPI's default one
 bearer_scheme = HTTPBearer(auto_error=False, description="JWT з POST /api/auth/login")

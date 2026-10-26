@@ -51,6 +51,22 @@ class MembershipRepository(BaseRepository[Membership]):
         )
         return self.session.scalar(query)
 
+    def covering(self, client_id: int, day: date, *, lock: bool = False) -> Sequence[Membership]:
+        """Non-cancelled memberships of a client whose period includes `day`.
+
+        With `lock=True` the rows are locked (SELECT ... FOR UPDATE) until the transaction ends, so two
+        simultaneous check-ins of the same client are processed one after another.
+        """
+        query = select(Membership).where(
+            Membership.client_id == client_id,
+            Membership.status != MembershipStatus.CANCELLED,
+            Membership.start_date <= day,
+            Membership.end_date >= day,
+        )
+        if lock:
+            query = query.with_for_update()
+        return self.session.scalars(query.order_by(Membership.id)).all()
+
     def count_paid(self, client_id: int) -> int:
         query = (
             select(func.count(Payment.id))

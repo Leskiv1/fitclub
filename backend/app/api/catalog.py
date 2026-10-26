@@ -82,6 +82,16 @@ def update_tariff(tariff_id: int, data: TariffPlanUpdate, service: TariffService
     return TariffPlanRead.model_validate(service.update(tariff_id, data))
 
 
+@tariffs.post(
+    "/{tariff_id}/clone",
+    status_code=status.HTTP_201_CREATED,
+    summary="Створити тариф на основі наявного (адміністратор)",
+    dependencies=ADMIN_ONLY,
+)
+def clone_tariff(tariff_id: int, service: TariffServiceDep) -> TariffPlanRead:
+    return TariffPlanRead.model_validate(service.clone(tariff_id))
+
+
 @tariffs.delete(
     "/{tariff_id}",
     status_code=status.HTTP_204_NO_CONTENT,
