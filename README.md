@@ -64,6 +64,7 @@ frontend/
     pages/          — сторінки застосунку
     theme/          — тема Ant Design
 diagrams/           — UML-діаграми (PNG)
+seed/               — скрипт демо-даних
 docker-compose.yml  — PostgreSQL
 .env.example        — приклад змінних середовища
 ```
@@ -76,8 +77,8 @@ docker-compose.yml  — PostgreSQL
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (для PostgreSQL)
 
 ### 1. Змінні середовища
-Скопіюйте `.env.example` у `.env` у корені проєкту і за потреби змініть пароль бази даних
-(його треба змінити і в `POSTGRES_PASSWORD`, і в `DATABASE_URL`):
+Скопіюйте `.env.example` у `.env` у корені проєкту, змініть пароль бази даних (і в `POSTGRES_PASSWORD`,
+і в `DATABASE_URL`) та задайте власний `JWT_SECRET` — випадковий рядок щонайменше з 32 символів:
 ```bash
 cp .env.example .env
 ```
@@ -97,7 +98,23 @@ pip install -r requirements.txt
 alembic upgrade head
 uvicorn app.main:app --reload
 ```
+Команда `alembic upgrade head` створює таблиці бази даних і запис налаштувань клубу за замовчуванням.
+
+Перед першим запуском створіть обліковий запис адміністратора (з каталогу `backend`):
+```bash
+python -m app.cli create-admin --email admin@example.com --password <пароль-від-8-символів>
+```
+Решту користувачів (рецепцію, тренерів, клієнтів) адміністратор додає через застосунок; клієнти можуть
+також зареєструватися самостійно.
 API доступне на http://localhost:8000, документація Swagger — http://localhost:8000/docs.
+Разом із сервером запускається щоденна перевірка абонементів (час задається в налаштуваннях клубу,
+`PATCH /api/settings`); її можна виконати й вручну: `POST /api/notifications/run-check`.
+Без `SMTP_HOST` у `.env` листи не надсилаються, а записуються в лог сервера; SMS — завжди імітація.
+Звіти доступні адміністратору в JSON, CSV і PDF: `GET /api/reports/{client-activity|income|load}?format=pdf`
+(для PDF використано шрифт DejaVu Sans, `backend/app/assets/fonts`, ліцензія — `LICENSE-DejaVu.txt`).
+
+Щоб викликати захищені ендпоінти у Swagger, виконайте `POST /api/auth/login`, скопіюйте `access_token`
+і вставте його у вікні **Authorize**.
 
 ### 4. Frontend
 ```bash
@@ -106,6 +123,17 @@ npm install
 npm run dev
 ```
 Застосунок відкривається на http://localhost:5173. Запити до `/api` Vite перенаправляє на backend.
+
+### Демо-дані (необов'язково)
+Щоб наповнити базу прикладами (клієнти, тренери, тарифи, абонементи, відвідування й заняття за кілька
+останніх тижнів), виконайте з кореня проєкту після `alembic upgrade head`:
+```bash
+python seed/seed_demo.py          # з активованим віртуальним середовищем backend
+```
+Скрипт очищає всі таблиці, крім налаштувань клубу, і заповнює їх заново; дати рахуються від поточного дня.
+Демо-облікові записи: `admin@fitclub.example` / `admin123`, `reception@fitclub.example` / `reception123`,
+`trainer1@fitclub.example` … `trainer4@fitclub.example` / `trainer123`,
+`client1@fitclub.example` … `client25@fitclub.example` / `client123`.
 
 ### Перевірка якості коду
 ```bash
