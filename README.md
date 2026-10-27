@@ -110,6 +110,8 @@ API доступне на http://localhost:8000, документація Swagge
 Разом із сервером запускається щоденна перевірка абонементів (час задається в налаштуваннях клубу,
 `PATCH /api/settings`); її можна виконати й вручну: `POST /api/notifications/run-check`.
 Без `SMTP_HOST` у `.env` листи не надсилаються, а записуються в лог сервера; SMS — завжди імітація.
+Звіти доступні адміністратору в JSON, CSV і PDF: `GET /api/reports/{client-activity|income|load}?format=pdf`
+(для PDF використано шрифт DejaVu Sans, `backend/app/assets/fonts`, ліцензія — `LICENSE-DejaVu.txt`).
 
 Щоб викликати захищені ендпоінти у Swagger, виконайте `POST /api/auth/login`, скопіюйте `access_token`
 і вставте його у вікні **Authorize**.

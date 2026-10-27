@@ -17,6 +17,7 @@ from app.api import (
     health,
     memberships,
     notifications,
+    reports,
     sessions,
     settings,
     trainers,
@@ -75,6 +76,7 @@ def create_app() -> FastAPI:
         bookings.router,
         notifications.router,
         settings.router,
+        reports.router,
     ):
         app.include_router(router, prefix="/api")
     return app
