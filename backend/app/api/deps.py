@@ -10,11 +10,13 @@ from sqlalchemy.orm import Session
 from app.core.clock import Clock
 from app.core.database import get_db
 from app.domain.errors import AuthenticationError, PermissionDeniedError
+from app.domain.events import EventBus
 from app.domain.models import Role, User
 from app.schemas.common import PageParams
 from app.services.auth import AuthService
 from app.services.catalog import HallService, MembershipOptionService, TariffPlanService
 from app.services.clients import ClientService
+from app.services.notifications.observers import build_event_bus
 from app.services.trainers import TrainerService
 
 DbSession = Annotated[Session, Depends(get_db)]
@@ -26,6 +28,14 @@ def get_clock() -> Clock:
 
 
 ClockDep = Annotated[Clock, Depends(get_clock)]
+
+
+def get_event_bus(db: DbSession, clock: ClockDep) -> EventBus:
+    """Event bus of the request: observers work in the same DB session."""
+    return build_event_bus(db, clock)
+
+
+EventBusDep = Annotated[EventBus, Depends(get_event_bus)]
 
 # auto_error=False: a missing token is reported in our own error format, not FastAPI's default one
 bearer_scheme = HTTPBearer(auto_error=False, description="JWT з POST /api/auth/login")

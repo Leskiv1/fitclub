@@ -66,6 +66,12 @@ class NotificationChannel(StrEnum):
     IN_APP = "in_app"
 
 
+class NotificationKind(StrEnum):
+    MEMBERSHIP_PURCHASED = "membership_purchased"
+    MEMBERSHIP_EXPIRING = "membership_expiring"
+    VISITS_LOW = "visits_low"
+
+
 class NotificationStatus(StrEnum):
     PENDING = "pending"
     SENT = "sent"

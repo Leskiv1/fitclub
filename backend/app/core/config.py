@@ -21,6 +21,16 @@ class Settings(BaseSettings):
     jwt_expire_minutes: int = Field(480, gt=0)
     club_timezone: str = "Europe/Kyiv"
 
+    # daily check of expiring memberships; switched off in tests
+    scheduler_enabled: bool = True
+
+    # e-mail: without SMTP_HOST letters go to the log (imitation)
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_user: str | None = None
+    smtp_password: str | None = None
+    smtp_from: str = "FitClub <noreply@fitclub.example>"
+
 
 @lru_cache
 def get_settings() -> Settings:

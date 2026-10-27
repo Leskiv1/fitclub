@@ -8,8 +8,10 @@ from app.api.deps import (
     ADMIN_ONLY,
     STAFF_ONLY,
     STAFF_ROLES,
+    ClockDep,
     CurrentUser,
     DbSession,
+    EventBusDep,
     Pagination,
     ensure_can_view_client,
 )
@@ -33,8 +35,8 @@ router = APIRouter(tags=["Абонементи"], responses=ERROR_RESPONSES)
 promo_codes = APIRouter(prefix="/promo-codes", tags=["Промокоди"], responses=ERROR_RESPONSES)
 
 
-def get_purchase_facade(db: DbSession) -> MembershipPurchaseFacade:
-    return MembershipPurchaseFacade(db)
+def get_purchase_facade(db: DbSession, clock: ClockDep, events: EventBusDep) -> MembershipPurchaseFacade:
+    return MembershipPurchaseFacade(db, clock=clock, events=events)
 
 
 def get_membership_service(db: DbSession) -> MembershipService:

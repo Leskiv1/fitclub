@@ -5,9 +5,10 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import date, datetime
+from typing import Protocol
 
 from app.domain.errors import BusinessRuleError
-from app.domain.models import Client, ClubSettings, Membership, MembershipStatus, Visit
+from app.domain.models import Client, Membership, MembershipStatus, Visit
 
 # When a client has several memberships for today, the one that can let them in is chosen first
 _STATUS_PRIORITY = {
@@ -16,6 +17,12 @@ _STATUS_PRIORITY = {
     MembershipStatus.PENDING: 2,
     MembershipStatus.EXPIRED: 3,
 }
+
+
+class SupportsOpeningHours(Protocol):
+    """Club settings as the chain needs them (a DB row or its cached snapshot)."""
+
+    def is_open(self, moment: datetime) -> bool: ...
 
 
 class CheckInDeniedError(BusinessRuleError):
@@ -30,7 +37,7 @@ class CheckInDeniedError(BusinessRuleError):
 class CheckInContext:
     client: Client
     memberships: list[Membership]  # non-cancelled memberships that cover today
-    settings: ClubSettings
+    settings: SupportsOpeningHours
     now: datetime
     visit_today: Visit | None
 

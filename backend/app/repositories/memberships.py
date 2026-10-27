@@ -2,9 +2,17 @@ from collections.abc import Sequence
 from datetime import date
 
 from sqlalchemy import func, select
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import aliased, selectinload
 
-from app.domain.models import Membership, MembershipStatus, Payment, PaymentStatus, PromoCode
+from app.domain.models import (
+    Membership,
+    MembershipStatus,
+    Notification,
+    NotificationKind,
+    Payment,
+    PaymentStatus,
+    PromoCode,
+)
 from app.repositories.base import BaseRepository
 
 
@@ -20,6 +28,48 @@ class MembershipRepository(BaseRepository[Membership]):
                 Membership.end_date.between(start, end),
             )
             .order_by(Membership.end_date)
+        )
+        return self.session.scalars(query).all()
+
+    def overdue(self, today: date) -> Sequence[Membership]:
+        """Memberships still marked active although their period is over."""
+        query = select(Membership).where(
+            Membership.status == MembershipStatus.ACTIVE, Membership.end_date < today
+        )
+        return self.session.scalars(query).all()
+
+    def reminder_candidates(self, today: date, until: date) -> Sequence[Membership]:
+        """Active memberships ending in [today, until] whose client got no reminder yet and did not renew."""
+        renewal = aliased(Membership)
+        renewed = (
+            select(renewal.id)
+            .where(
+                renewal.client_id == Membership.client_id,
+                renewal.id != Membership.id,
+                renewal.status.in_(
+                    [MembershipStatus.ACTIVE, MembershipStatus.PENDING, MembershipStatus.FROZEN]
+                ),
+                renewal.end_date > Membership.end_date,
+            )
+            .exists()
+        )
+        reminded = (
+            select(Notification.id)
+            .where(
+                Notification.membership_id == Membership.id,
+                Notification.kind == NotificationKind.MEMBERSHIP_EXPIRING,
+            )
+            .exists()
+        )
+        query = (
+            select(Membership)
+            .where(
+                Membership.status == MembershipStatus.ACTIVE,
+                Membership.end_date.between(today, until),
+                ~renewed,
+                ~reminded,
+            )
+            .order_by(Membership.end_date, Membership.id)
         )
         return self.session.scalars(query).all()
 

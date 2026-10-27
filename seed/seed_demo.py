@@ -4,6 +4,7 @@ Run from the project root:  backend/.venv/Scripts/python seed/seed_demo.py
 Clears all tables except club_settings and fills them again; dates are relative to today.
 """
 
+import logging
 import random
 import sys
 from datetime import date, datetime, time, timedelta
@@ -15,6 +16,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
 
 from sqlalchemy import text  # noqa: E402
 
+from app.core.clock import Clock  # noqa: E402
 from app.core.config import get_settings  # noqa: E402
 from app.core.database import Base, SessionLocal  # noqa: E402
 from app.core.security import hash_password  # noqa: E402
@@ -31,9 +33,7 @@ from app.domain.models import (  # noqa: E402
     Membership,
     MembershipOption,
     MembershipStatus,
-    Notification,
     NotificationChannel,
-    NotificationStatus,
     Payment,
     PaymentMethod,
     PromoCode,
@@ -45,6 +45,8 @@ from app.domain.models import (  # noqa: E402
     Visit,
     WorkShift,
 )
+from app.services.notifications.daily_check import ExpiringMembershipsJob  # noqa: E402
+from app.services.notifications.observers import build_event_bus  # noqa: E402
 
 rng = random.Random(42)
 CLUB_ZONE = ZoneInfo(get_settings().club_timezone)
@@ -381,27 +383,11 @@ def seed_sessions(session, trainers, halls, clients) -> None:
             session.add(individual)
 
 
-def seed_notifications(session, settings) -> None:
-    expiring = (
-        session.query(Membership)
-        .filter(
-            Membership.status == MembershipStatus.ACTIVE,
-            Membership.end_date.between(TODAY, TODAY + timedelta(days=settings.expiry_warning_days)),
-        )
-        .all()
-    )
-    for membership in expiring:
-        days = membership.days_left(TODAY)
-        session.add(
-            Notification(
-                client=membership.client,
-                channel=membership.client.notification_channel,
-                message=f"Ваш абонемент «{membership.tariff_plan.name}» закінчується через {days} дн. "
-                f"({membership.end_date:%d.%m.%Y}). Продовжте його на рецепції або в кабінеті.",
-                status=NotificationStatus.SENT,
-                sent_at=local(TODAY, settings.daily_check_time),
-            )
-        )
+def seed_notifications(session) -> None:
+    """Reminders are produced by the real daily job: Observer -> channel factory -> adapter."""
+    logging.getLogger("fitclub.notifications").setLevel(logging.WARNING)  # the fake e-mails are long
+    clock = Clock()
+    ExpiringMembershipsJob(session, clock, build_event_bus(session, clock)).run()
 
 
 def main() -> None:
@@ -415,7 +401,8 @@ def main() -> None:
         seed_memberships(session, clients, tariffs, options, settings)
         seed_sessions(session, trainers, halls, clients)
         session.flush()
-        seed_notifications(session, settings)
+        session.commit()
+        seed_notifications(session)
         session.commit()
 
         counts = {

@@ -6,7 +6,9 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
+from app.core.clock import Clock
 from app.domain.errors import BusinessRuleError, NotFoundError
+from app.domain.events import EventBus, MembershipPurchased
 from app.domain.membership.discounts import (
     DiscountContext,
     DiscountStrategy,
@@ -74,8 +76,16 @@ class MembershipPurchaseFacade:
     DiscountStrategy (Strategy), PaymentProcessor, MembershipState (State) and the repositories.
     """
 
-    def __init__(self, session: Session, payments: PaymentProcessor | None = None) -> None:
+    def __init__(
+        self,
+        session: Session,
+        payments: PaymentProcessor | None = None,
+        clock: Clock | None = None,
+        events: EventBus | None = None,
+    ) -> None:
         self.session = session
+        self.clock = clock or Clock()
+        self.events = events or EventBus()
         self.clients = ClientRepository(session)
         self.tariffs = TariffPlanRepository(session)
         self.options = MembershipOptionRepository(session)
@@ -85,10 +95,10 @@ class MembershipPurchaseFacade:
 
     def quote(self, request: PurchaseRequest, today: date | None = None) -> Quote:
         """Price and dates of a purchase without saving anything (summary step of the purchase form)."""
-        return self._prepare(request, today or date.today())[3]
+        return self._prepare(request, today or self.clock.today())[3]
 
     def purchase(self, request: PurchaseRequest, today: date | None = None) -> Membership:
-        client, tariff, options, quote = self._prepare(request, today or date.today())
+        client, tariff, options, quote = self._prepare(request, today or self.clock.today())
 
         membership = factory_for(tariff.type).issue(client, tariff, quote.start_date, options)
         membership.total_price = quote.total
@@ -100,6 +110,7 @@ class MembershipPurchaseFacade:
 
         self.memberships.add(membership)
         self.session.commit()
+        self.events.publish(MembershipPurchased(membership_id=membership.id))  # GoF Observer, after commit
         return membership
 
     # --- steps hidden behind the facade ---

@@ -4,7 +4,15 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
 
-from app.api.deps import STAFF_ONLY, ClockDep, CurrentUser, DbSession, Pagination, ensure_can_view_client
+from app.api.deps import (
+    STAFF_ONLY,
+    ClockDep,
+    CurrentUser,
+    DbSession,
+    EventBusDep,
+    Pagination,
+    ensure_can_view_client,
+)
 from app.api.errors import ERROR_RESPONSES
 from app.schemas.common import Page
 from app.schemas.visits import CheckInIn, TodayVisitRead, VisitRead
@@ -13,8 +21,8 @@ from app.services.check_in import CheckInFacade
 router = APIRouter(tags=["Відвідування"], responses=ERROR_RESPONSES)
 
 
-def get_check_in_facade(db: DbSession, clock: ClockDep) -> CheckInFacade:
-    return CheckInFacade(db, clock)
+def get_check_in_facade(db: DbSession, clock: ClockDep, events: EventBusDep) -> CheckInFacade:
+    return CheckInFacade(db, clock, events)
 
 
 CheckInFacadeDep = Annotated[CheckInFacade, Depends(get_check_in_facade)]
