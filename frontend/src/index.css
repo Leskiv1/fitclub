@@ -82,6 +82,11 @@ body {
   padding-bottom: 96px;
 }
 
+.back-home {
+  display: inline-block;
+  margin-bottom: 8px;
+}
+
 .page-title {
   margin: 0 0 4px !important;
 }
@@ -192,8 +197,41 @@ body {
 }
 
 .hero__inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 48px;
+  align-items: center;
   max-width: 1120px;
   margin: 0 auto;
+}
+
+.hero__photo {
+  justify-self: end;
+  width: 100%;
+  max-width: 400px;
+}
+
+/* Photo from the Stitch mockup; the coach stands at ~55% of the frame width */
+.hero__photo img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  object-position: 55% center;
+  border-radius: 24px;
+  box-shadow:
+    0 0 0 6px rgba(255, 107, 53, 0.25),
+    0 24px 60px rgba(0, 0, 0, 0.45);
+}
+
+@media (max-width: 767px) {
+  .hero__inner {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hero__photo {
+    display: none;
+  }
 }
 
 .hero h1 {
@@ -213,19 +251,65 @@ body {
   color: #e1e2e4;
 }
 
+/* Three equal columns: the number is centred above its caption */
 .hero__stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  max-width: 480px;
   margin-top: 40px;
-  color: #c3c6ce;
+  text-align: center;
 }
 
-.hero__stats strong {
+.hero__stat strong {
   display: block;
-  font-size: 28px;
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1.2;
   color: #fff;
+}
+
+.hero__stat span {
+  display: block;
+  margin-top: 4px;
+  font-size: 14px;
+  line-height: 1.35;
+  color: #c3c6ce;
 }
 
 .section {
   padding-top: 48px;
+  /* Anchored scrolling stops below the sticky header */
+  scroll-margin-top: 64px;
+}
+
+/* Tariff cards: same rows in every card, the description stretches,
+   so prices and "Обрати" buttons line up across a row */
+.tariff-card {
+  height: 100%;
+}
+
+.tariff-card .ant-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  padding: 28px;
+  box-sizing: border-box;
+}
+
+.tariff-card__tag {
+  align-self: flex-start;
+  margin: 0;
+}
+
+.tariff-card__name {
+  margin: 0 !important;
+}
+
+.tariff-card__description {
+  flex: 1;
+  margin: 4px 0 16px !important;
 }
 
 .section h2 {

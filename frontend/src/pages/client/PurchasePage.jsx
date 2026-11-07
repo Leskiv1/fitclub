@@ -27,6 +27,7 @@ import { getErrorMessage } from '../../utils/errors';
 import {
   DISCOUNT_LABELS,
   formatMoney,
+  sortTariffs,
   TARIFF_TYPE_LABELS,
   tariffSummary,
   visits,
@@ -61,7 +62,7 @@ const DISCOUNTS = [
 async function loadCatalog() {
   const [tariffs, options] = await Promise.all([fetchTariffs(), fetchOptions()]);
   return {
-    tariffs: tariffs.filter((t) => t.is_active),
+    tariffs: sortTariffs(tariffs.filter((t) => t.is_active)),
     options: options.filter((o) => o.is_active),
   };
 }

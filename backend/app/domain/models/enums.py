@@ -15,6 +15,7 @@ class Role(StrEnum):
 class TariffType(StrEnum):
     SINGLE_VISIT = "single_visit"
     MONTHLY = "monthly"
+    HALF_YEARLY = "half_yearly"
     YEARLY = "yearly"
     VISIT_PACK = "visit_pack"
 

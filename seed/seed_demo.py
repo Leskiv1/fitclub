@@ -178,6 +178,14 @@ def seed_catalog(session) -> tuple[list[Hall], dict[str, TariffPlan], list[Membe
             visit_limit=None,
             description="Безлімітні відвідування та групові заняття",
         ),
+        "half_yearly": TariffPlan(
+            name="Піврічний безліміт",
+            type=TariffType.HALF_YEARLY,
+            price=Decimal("5700"),
+            duration_days=182,
+            visit_limit=None,
+            description="Безліміт на 6 місяців, групові заняття включено",
+        ),
         "yearly": TariffPlan(
             name="Річний безліміт",
             type=TariffType.YEARLY,

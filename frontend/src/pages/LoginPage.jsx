@@ -4,6 +4,7 @@ import { Alert, Button, Card, Flex, Form, Input, Typography } from 'antd';
 import { Link, Navigate, useLocation } from 'react-router-dom';
 import { homePathFor } from '../auth/roles';
 import useAuth from '../auth/useAuth';
+import BackHomeLink from '../components/BackHomeLink';
 import { getErrorMessage } from '../utils/errors';
 
 const { Title, Text } = Typography;
@@ -34,45 +35,48 @@ export default function LoginPage() {
   };
 
   return (
-    <Flex justify="center" className="page">
-      <Card className="soft-card" style={{ width: '100%', maxWidth: 420 }}>
-        <Title level={2} className="page-title">
-          Вхід
-        </Title>
-        <Text className="page-subtitle">
-          Увійдіть, щоб записуватися на заняття й купувати абонементи
-        </Text>
+    <div className="page">
+      <BackHomeLink />
+      <Flex justify="center">
+        <Card className="soft-card" style={{ width: '100%', maxWidth: 420 }}>
+          <Title level={2} className="page-title">
+            Вхід
+          </Title>
+          <Text className="page-subtitle">
+            Увійдіть, щоб записуватися на заняття й купувати абонементи
+          </Text>
 
-        {error && <Alert type="error" title={error} showIcon style={{ marginBottom: 16 }} />}
+          {error && <Alert type="error" title={error} showIcon style={{ marginBottom: 16 }} />}
 
-        <Form layout="vertical" onFinish={onFinish} requiredMark={false}>
-          <Form.Item
-            name="email"
-            label="Email"
-            rules={[{ required: true, type: 'email', message: 'Введіть коректний email' }]}
-          >
-            <Input prefix={<MailOutlined />} autoComplete="email" size="large" />
-          </Form.Item>
-          <Form.Item
-            name="password"
-            label="Пароль"
-            rules={[{ required: true, message: 'Введіть пароль' }]}
-          >
-            <Input.Password
-              prefix={<LockOutlined />}
-              autoComplete="current-password"
-              size="large"
-            />
-          </Form.Item>
-          <Button type="primary" htmlType="submit" size="large" block loading={submitting}>
-            Увійти
-          </Button>
-        </Form>
+          <Form layout="vertical" onFinish={onFinish} requiredMark={false}>
+            <Form.Item
+              name="email"
+              label="Email"
+              rules={[{ required: true, type: 'email', message: 'Введіть коректний email' }]}
+            >
+              <Input prefix={<MailOutlined />} autoComplete="email" size="large" />
+            </Form.Item>
+            <Form.Item
+              name="password"
+              label="Пароль"
+              rules={[{ required: true, message: 'Введіть пароль' }]}
+            >
+              <Input.Password
+                prefix={<LockOutlined />}
+                autoComplete="current-password"
+                size="large"
+              />
+            </Form.Item>
+            <Button type="primary" htmlType="submit" size="large" block loading={submitting}>
+              Увійти
+            </Button>
+          </Form>
 
-        <Text style={{ display: 'block', marginTop: 16, textAlign: 'center' }}>
-          Ще немає облікового запису? <Link to="/register">Зареєструватися</Link>
-        </Text>
-      </Card>
-    </Flex>
+          <Text style={{ display: 'block', marginTop: 16, textAlign: 'center' }}>
+            Ще немає облікового запису? <Link to="/register">Зареєструватися</Link>
+          </Text>
+        </Card>
+      </Flex>
+    </div>
   );
 }
