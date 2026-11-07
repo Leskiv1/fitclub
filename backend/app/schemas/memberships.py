@@ -49,6 +49,9 @@ class QuoteOut(Schema):
     start_date: date
     end_date: date
     visits_left: int | None
+    start_options: list[date] = Field(
+        description="Дні, з яких можна почати: клуб працює, сьогодні — до закриття; не далі місяця"
+    )
 
     @classmethod
     def from_quote(cls, quote: Quote) -> QuoteOut:
@@ -68,6 +71,7 @@ class QuoteOut(Schema):
             start_date=quote.start_date,
             end_date=quote.end_date,
             visits_left=quote.visits_left,
+            start_options=quote.start_options,
         )
 
 

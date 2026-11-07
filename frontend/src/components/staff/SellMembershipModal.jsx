@@ -8,6 +8,7 @@ import { buildDiscount, discountByValue, DISCOUNTS } from '../../utils/discounts
 import { getErrorMessage } from '../../utils/errors';
 import { formatMoney, sortTariffs, tariffSummary } from '../../utils/format';
 import PriceSummary from '../PriceSummary';
+import StartDatePicker from '../StartDatePicker';
 
 async function loadCatalog() {
   const [tariffs, options] = await Promise.all([fetchTariffs(), fetchOptions()]);
@@ -26,6 +27,7 @@ export default function SellMembershipModal({ clientId, open, onClose, onSold })
   const [discountType, setDiscountType] = useState('none');
   const [reference, setReference] = useState('');
   const [payment, setPayment] = useState('cash');
+  const [startDate, setStartDate] = useState(null); // null -> the earliest allowed day
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState(null);
 
@@ -35,6 +37,7 @@ export default function SellMembershipModal({ clientId, open, onClose, onSold })
         tariff_id: tariffId,
         option_ids: optionIds,
         discount: buildDiscount(discountType, reference),
+        start_date: startDate ?? undefined,
       }
     : null;
   const { quote, error: quoteError, pending } = useQuote(open ? payload : null);
@@ -109,6 +112,9 @@ export default function SellMembershipModal({ clientId, open, onClose, onSold })
                 />
               </Form.Item>
             )}
+            <Form.Item label="Початок дії">
+              <StartDatePicker quote={quote} value={startDate} onChange={setStartDate} />
+            </Form.Item>
             <Form.Item label="Оплата">
               <Radio.Group
                 value={payment}

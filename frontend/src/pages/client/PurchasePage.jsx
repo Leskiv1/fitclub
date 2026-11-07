@@ -21,6 +21,7 @@ import { purchaseMembership } from '../../api/memberships';
 import LoadError from '../../components/LoadError';
 import PageSpinner from '../../components/PageSpinner';
 import PriceSummary from '../../components/PriceSummary';
+import StartDatePicker from '../../components/StartDatePicker';
 import useApi from '../../hooks/useApi';
 import useQuote from '../../hooks/useQuote';
 import { dayjs } from '../../utils/dates';
@@ -70,6 +71,7 @@ export default function PurchasePage() {
   const [optionIds, setOptionIds] = useState([]);
   const [discountType, setDiscountType] = useState('none');
   const [reference, setReference] = useState('');
+  const [startDate, setStartDate] = useState(null); // null -> the earliest allowed day
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState(null);
   const [purchased, setPurchased] = useState(null);
@@ -80,6 +82,7 @@ export default function PurchasePage() {
         tariff_id: tariff.id,
         option_ids: optionIds,
         discount: buildDiscount(discountType, reference),
+        start_date: startDate ?? undefined,
       }
     : null;
   const { quote, error: quoteError, pending } = useQuote(purchased ? null : payload);
@@ -127,7 +130,6 @@ export default function PurchasePage() {
     (step === 0 && tariff) ||
     step === 1 ||
     (step === 2 && !missingReference && !quoteError && !pending);
-  const startsLater = quote && quote.start_date > dayjs().format('YYYY-MM-DD');
 
   return (
     <>
@@ -230,24 +232,30 @@ export default function PurchasePage() {
             </Flex>
           )}
 
+          {step === 3 && !quote && startDate && quoteError && (
+            <Alert
+              type="warning"
+              showIcon
+              title="Обрана дата початку більше недоступна"
+              action={<Button onClick={() => setStartDate(null)}>Обрати іншу</Button>}
+            />
+          )}
+
           {step === 3 && quote && (
             <Card className="soft-card">
               <Flex vertical gap={12}>
                 <Text>
                   Тариф: <Text strong>{tariff.name}</Text>
                 </Text>
+                <div>
+                  <Text>Початок дії</Text>
+                  <StartDatePicker quote={quote} value={startDate} onChange={setStartDate} />
+                </div>
                 <Text>
                   Діє: <Text strong>{dayjs(quote.start_date).format(DATE)}</Text> –{' '}
                   <Text strong>{dayjs(quote.end_date).format(DATE)}</Text>
                   {quote.visits_left !== null && ` · ${visits(quote.visits_left)}`}
                 </Text>
-                {startsLater && (
-                  <Alert
-                    type="info"
-                    showIcon
-                    title="Новий абонемент почнеться після закінчення поточного"
-                  />
-                )}
                 <Radio checked>
                   <CreditCardOutlined /> Онлайн-оплата карткою
                 </Radio>

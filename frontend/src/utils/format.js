@@ -1,3 +1,5 @@
+import { dayjs, ISO_DATE } from './dates';
+
 // Display helpers and Ukrainian labels for the enums of the API
 
 const money = new Intl.NumberFormat('uk-UA', {
@@ -22,6 +24,15 @@ export function plural(n, one, few, many) {
 
 export const days = (n) => `${n} ${plural(n, 'день', 'дні', 'днів')}`;
 export const visits = (n) => `${n} ${plural(n, 'відвідування', 'відвідування', 'відвідувань')}`;
+
+// The API's days_left counts days after today, so 0 means "today is the last day"
+export function daysLeftLabel(membership) {
+  if (membership.start_date > dayjs().format(ISO_DATE)) {
+    return `Почнеться ${dayjs(membership.start_date).format('DD.MM.YYYY')}`;
+  }
+  if (membership.days_left === 0) return 'Сьогодні останній день';
+  return `Залишилось ${days(membership.days_left)}`;
+}
 
 export function initials(fullName) {
   return fullName

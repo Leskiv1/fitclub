@@ -157,7 +157,7 @@ def seed_catalog(session) -> tuple[list[Hall], dict[str, TariffPlan], list[Membe
         "pack": TariffPlan(
             name="Пакет 8 відвідувань",
             type=TariffType.VISIT_PACK,
-            price=Decimal("1200"),
+            price=Decimal("750"),
             duration_days=60,
             visit_limit=8,
             description="8 відвідувань протягом 60 днів",
@@ -165,7 +165,7 @@ def seed_catalog(session) -> tuple[list[Hall], dict[str, TariffPlan], list[Membe
         "monthly12": TariffPlan(
             name="Місячний 12 відвідувань",
             type=TariffType.MONTHLY,
-            price=Decimal("850"),
+            price=Decimal("950"),
             duration_days=30,
             visit_limit=12,
             description="12 відвідувань, групові заняття включено",
@@ -173,7 +173,7 @@ def seed_catalog(session) -> tuple[list[Hall], dict[str, TariffPlan], list[Membe
         "monthly": TariffPlan(
             name="Місячний безліміт",
             type=TariffType.MONTHLY,
-            price=Decimal("1100"),
+            price=Decimal("1200"),
             duration_days=30,
             visit_limit=None,
             description="Безлімітні відвідування та групові заняття",
@@ -181,7 +181,7 @@ def seed_catalog(session) -> tuple[list[Hall], dict[str, TariffPlan], list[Membe
         "half_yearly": TariffPlan(
             name="Піврічний безліміт",
             type=TariffType.HALF_YEARLY,
-            price=Decimal("5700"),
+            price=Decimal("6300"),
             duration_days=182,
             visit_limit=None,
             description="Безліміт на 6 місяців, групові заняття включено",
@@ -189,7 +189,7 @@ def seed_catalog(session) -> tuple[list[Hall], dict[str, TariffPlan], list[Membe
         "yearly": TariffPlan(
             name="Річний безліміт",
             type=TariffType.YEARLY,
-            price=Decimal("9900"),
+            price=Decimal("10800"),
             duration_days=365,
             visit_limit=None,
             description="Безліміт на рік, 2 тижні заморозки",
