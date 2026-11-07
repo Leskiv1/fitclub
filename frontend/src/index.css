@@ -82,6 +82,63 @@ body {
   padding-bottom: 96px;
 }
 
+.page--wide {
+  max-width: 1280px;
+}
+
+/* ---- Staff side menu ---- */
+.staff-sider {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  z-index: 20;
+}
+
+.staff-sider__brand {
+  padding: 20px 20px 16px;
+}
+
+.staff-sider__caption {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #8d9199 !important;
+}
+
+.staff-sider__user {
+  margin: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* KPI tiles (dashboard) */
+.kpi {
+  height: 100%;
+}
+
+.kpi__value {
+  display: block;
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.kpi__label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--fc-text-muted);
+}
+
+/* Hall load heat map (report З-3): background colour is set inline from the percentage */
+.heatmap td.heatmap__cell {
+  text-align: center;
+  font-weight: 600;
+}
+
 .back-home {
   display: inline-block;
   margin-bottom: 8px;

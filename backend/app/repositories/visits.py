@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from datetime import date
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import joinedload
 
 from app.domain.models import Client, Membership, Visit
@@ -43,3 +43,12 @@ class VisitRepository(BaseRepository[Visit]):
             .order_by(Visit.checked_in_at.desc())
         )
         return self.session.scalars(query).unique().all()
+
+    def count_by_day(self, start: date, end: date) -> dict[date, int]:
+        """Number of visits per local day in [start, end]; days without visits are absent."""
+        query = (
+            select(Visit.visit_date, func.count(Visit.id))
+            .where(Visit.visit_date.between(start, end))
+            .group_by(Visit.visit_date)
+        )
+        return {day: count for day, count in self.session.execute(query).all()}

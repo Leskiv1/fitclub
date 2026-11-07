@@ -7,11 +7,15 @@ import BackHomeLink from '../components/BackHomeLink';
 import { dayjs, ISO_DATE } from '../utils/dates';
 import { getErrorMessage } from '../utils/errors';
 import { CHANNEL_LABELS } from '../utils/format';
+import {
+  emailRules,
+  nameRules,
+  normalizePhone,
+  passwordRules,
+  phoneRules,
+} from '../utils/validation';
 
 const { Title, Text } = Typography;
-
-// Same rules as the API (ClientCreate): name 2–150, phone 10–15 digits, password ≥ 6
-const PHONE_RE = /^\+?\d{10,15}$/;
 
 // Guest -> client (use case "Зареєструватися"); the server returns a token right away
 export default function RegisterPage() {
@@ -58,14 +62,7 @@ export default function RegisterPage() {
             requiredMark={false}
             initialValues={{ notification_channel: 'email' }}
           >
-            <Form.Item
-              name="full_name"
-              label="Прізвище та імʼя"
-              rules={[
-                { required: true, whitespace: true, message: 'Введіть ПІБ' },
-                { min: 2, max: 150, message: 'Від 2 до 150 символів' },
-              ]}
-            >
+            <Form.Item name="full_name" label="Прізвище та імʼя" rules={nameRules}>
               <Input autoComplete="name" placeholder="Шевченко Тарас" />
             </Form.Item>
             <Form.Item
@@ -80,29 +77,13 @@ export default function RegisterPage() {
                 defaultPickerValue={dayjs().subtract(20, 'year')}
               />
             </Form.Item>
-            <Form.Item
-              name="phone"
-              label="Телефон"
-              normalize={(v) => v.replace(/[\s\-()]/g, '')}
-              rules={[
-                { required: true, message: 'Введіть телефон' },
-                { pattern: PHONE_RE, message: '10–15 цифр, наприклад +380671234567' },
-              ]}
-            >
+            <Form.Item name="phone" label="Телефон" normalize={normalizePhone} rules={phoneRules}>
               <Input autoComplete="tel" placeholder="+380671234567" />
             </Form.Item>
-            <Form.Item
-              name="email"
-              label="Email"
-              rules={[{ required: true, type: 'email', message: 'Введіть коректний email' }]}
-            >
+            <Form.Item name="email" label="Email" rules={emailRules}>
               <Input autoComplete="email" />
             </Form.Item>
-            <Form.Item
-              name="password"
-              label="Пароль"
-              rules={[{ required: true, min: 6, max: 128, message: 'Щонайменше 6 символів' }]}
-            >
+            <Form.Item name="password" label="Пароль" rules={passwordRules}>
               <Input.Password autoComplete="new-password" />
             </Form.Item>
             <Form.Item
