@@ -43,3 +43,8 @@ class TodayVisitRead(VisitRead):
         client = visit.membership.client
         base = VisitRead.from_model(visit, zone).model_dump()
         return cls(**base, client_id=client.id, client_name=client.full_name, client_phone=client.phone)
+
+
+class DailyVisitsRead(Schema):
+    date: date
+    visits: int

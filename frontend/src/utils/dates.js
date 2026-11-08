@@ -1,9 +1,20 @@
 import dayjs from 'dayjs';
 import 'dayjs/locale/uk';
+import timezone from 'dayjs/plugin/timezone';
 import utc from 'dayjs/plugin/utc';
 
 dayjs.extend(utc);
+dayjs.extend(timezone);
 dayjs.locale('uk');
+
+// Same zone as CLUB_TIMEZONE on the server (backend/app/core/clock.py)
+export const CLUB_TZ = 'Europe/Kyiv';
+
+// "2026-11-09" + "18:00" -> "2026-11-09T18:00:00+02:00": the offset follows Kyiv's DST rules for that
+// date, not the browser's zone and not today's offset
+export function toClubIso(date, time) {
+  return dayjs.tz(`${date} ${time}`, 'YYYY-MM-DD HH:mm', CLUB_TZ).format();
+}
 
 const OFFSET_RE = /([+-])(\d{2}):?(\d{2})$/;
 

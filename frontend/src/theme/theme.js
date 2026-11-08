@@ -13,6 +13,16 @@ const theme = {
     Layout: {
       siderBg: '#2E3132',
       headerBg: '#FFFFFF',
+      triggerBg: '#2E3132',
+    },
+    // Staff side menu: graphite background, orange active item
+    Menu: {
+      darkItemBg: '#2E3132',
+      darkSubMenuItemBg: '#2E3132',
+      darkItemColor: '#C3C6CE',
+      darkItemHoverColor: '#FFFFFF',
+      darkItemSelectedBg: '#FF6B35',
+      darkItemSelectedColor: '#FFFFFF',
     },
   },
 };

@@ -1,6 +1,7 @@
 """Registering a client's arrival at the club (Ф-2)."""
 
 from collections.abc import Sequence
+from datetime import date, timedelta
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -60,6 +61,13 @@ class CheckInFacade:
 
     def visits_today(self) -> Sequence[Visit]:
         return self.visits.on_day(self.clock.today())
+
+    def daily_counts(self, days: int) -> list[tuple[date, int]]:
+        """Visits per day for the last `days` days up to today (club time), zeros included."""
+        end = self.clock.today()
+        start = end - timedelta(days=days - 1)
+        counts = self.visits.count_by_day(start, end)
+        return [(start + timedelta(days=i), counts.get(start + timedelta(days=i), 0)) for i in range(days)]
 
     def history(self, client_id: int, *, offset: int, limit: int) -> tuple[Sequence[Visit], int]:
         if self.clients.get(client_id) is None:

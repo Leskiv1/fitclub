@@ -76,6 +76,17 @@ class MonthlyMembershipFactory(MembershipFactory):
         return self._new(tariff, start, end, visits_left=tariff.visit_limit)
 
 
+class HalfYearlyMembershipFactory(MembershipFactory):
+    """GoF: Factory Method — ConcreteCreator. Six calendar months, unlimited visits."""
+
+    freezable = True
+    max_freeze_days = 30
+
+    def create_membership(self, tariff: TariffPlan, start: date) -> Membership:
+        end = add_months(start, 6) - timedelta(days=1)
+        return self._new(tariff, start, end, visits_left=tariff.visit_limit)
+
+
 class YearlyMembershipFactory(MembershipFactory):
     """GoF: Factory Method — ConcreteCreator. A calendar year (29 Feb is handled), unlimited visits."""
 
@@ -98,6 +109,7 @@ class VisitPackMembershipFactory(MembershipFactory):
 _FACTORIES: dict[TariffType, MembershipFactory] = {
     TariffType.SINGLE_VISIT: SingleVisitMembershipFactory(),
     TariffType.MONTHLY: MonthlyMembershipFactory(),
+    TariffType.HALF_YEARLY: HalfYearlyMembershipFactory(),
     TariffType.YEARLY: YearlyMembershipFactory(),
     TariffType.VISIT_PACK: VisitPackMembershipFactory(),
 }

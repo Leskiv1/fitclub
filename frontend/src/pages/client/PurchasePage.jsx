@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { CheckOutlined, CreditCardOutlined } from '@ant-design/icons';
 import {
   Alert,
@@ -6,7 +6,6 @@ import {
   Card,
   Checkbox,
   Col,
-  Divider,
   Flex,
   Input,
   Radio,
@@ -18,15 +17,19 @@ import {
 } from 'antd';
 import { Link, useSearchParams } from 'react-router-dom';
 import { fetchOptions, fetchTariffs } from '../../api/catalog';
-import { purchaseMembership, quoteMembership } from '../../api/memberships';
+import { purchaseMembership } from '../../api/memberships';
 import LoadError from '../../components/LoadError';
 import PageSpinner from '../../components/PageSpinner';
+import PriceSummary from '../../components/PriceSummary';
+import StartDatePicker from '../../components/StartDatePicker';
 import useApi from '../../hooks/useApi';
+import useQuote from '../../hooks/useQuote';
 import { dayjs } from '../../utils/dates';
+import { buildDiscount, discountByValue, DISCOUNTS } from '../../utils/discounts';
 import { getErrorMessage } from '../../utils/errors';
 import {
-  DISCOUNT_LABELS,
   formatMoney,
+  sortTariffs,
   TARIFF_TYPE_LABELS,
   tariffSummary,
   visits,
@@ -34,100 +37,13 @@ import {
 
 const { Title, Text } = Typography;
 const DATE = 'DD.MM.YYYY';
-const QUOTE_DELAY_MS = 300;
-
-// Conditions are checked by the server (Strategy); here they are only explained
-const DISCOUNTS = [
-  { value: 'none', label: 'Без знижки' },
-  {
-    value: 'student',
-    label: DISCOUNT_LABELS.student,
-    hint: 'Для студентів до 21 року. Потрібен номер студентського квитка.',
-    reference: { placeholder: 'КВ12345678', label: 'Номер студентського квитка' },
-  },
-  {
-    value: 'loyalty',
-    label: DISCOUNT_LABELS.loyalty,
-    hint: 'Для клієнтів, які оплатили 12 і більше абонементів.',
-  },
-  {
-    value: 'promo',
-    label: DISCOUNT_LABELS.promo,
-    hint: 'Код з акції клубу.',
-    reference: { placeholder: 'AUTUMN10', label: 'Промокод' },
-  },
-];
 
 async function loadCatalog() {
   const [tariffs, options] = await Promise.all([fetchTariffs(), fetchOptions()]);
   return {
-    tariffs: tariffs.filter((t) => t.is_active),
+    tariffs: sortTariffs(tariffs.filter((t) => t.is_active)),
     options: options.filter((o) => o.is_active),
   };
-}
-
-function buildDiscount(type, reference) {
-  if (type === 'none') return null;
-  const needsReference = DISCOUNTS.find((d) => d.value === type).reference;
-  if (!needsReference) return { type };
-  return reference.trim() ? { type, reference: reference.trim() } : null;
-}
-
-// Server-side price (Facade -> Decorator -> Strategy), re-requested after each change.
-// The result is accepted only for the current payload, so late answers cannot overwrite it.
-function useQuote(payload) {
-  const key = payload ? JSON.stringify(payload) : null;
-  const [result, setResult] = useState({ key: null, quote: null, error: null });
-
-  useEffect(() => {
-    if (!key) return undefined;
-    let active = true;
-    const timer = setTimeout(() => {
-      quoteMembership(JSON.parse(key)).then(
-        (quote) => active && setResult({ key, quote, error: null }),
-        (error) => active && setResult({ key, quote: null, error }),
-      );
-    }, QUOTE_DELAY_MS);
-    return () => {
-      active = false;
-      clearTimeout(timer);
-    };
-  }, [key]);
-
-  const pending = Boolean(key) && result.key !== key;
-  return { quote: result.quote, error: pending ? null : result.error, pending };
-}
-
-function PriceSummary({ quote, error, pending }) {
-  return (
-    <Card className="soft-card" title="Розрахунок вартості">
-      {error && <Alert type="error" showIcon title={getErrorMessage(error)} />}
-      {!quote && !error && <Text type="secondary">Оберіть тариф</Text>}
-      {quote && (
-        <Flex vertical gap={8} style={{ opacity: pending ? 0.5 : 1 }}>
-          {quote.lines.map((line) => (
-            <Flex key={line.name} justify="space-between" gap={8}>
-              <Text>{line.name}</Text>
-              <Text>{formatMoney(line.amount)}</Text>
-            </Flex>
-          ))}
-          {quote.discount && (
-            <Flex justify="space-between" gap={8}>
-              <Text type="success">
-                Знижка «{DISCOUNT_LABELS[quote.discount.type]}» −{quote.discount.percent}%
-              </Text>
-              <Text type="success">−{formatMoney(quote.discount.amount)}</Text>
-            </Flex>
-          )}
-          <Divider style={{ margin: '8px 0' }} />
-          <Flex justify="space-between" align="baseline">
-            <Text strong>Разом до сплати</Text>
-            <span className="price">{formatMoney(quote.total)}</span>
-          </Flex>
-        </Flex>
-      )}
-    </Card>
-  );
 }
 
 function SelectCard({ active, onClick, children }) {
@@ -155,6 +71,7 @@ export default function PurchasePage() {
   const [optionIds, setOptionIds] = useState([]);
   const [discountType, setDiscountType] = useState('none');
   const [reference, setReference] = useState('');
+  const [startDate, setStartDate] = useState(null); // null -> the earliest allowed day
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState(null);
   const [purchased, setPurchased] = useState(null);
@@ -165,6 +82,7 @@ export default function PurchasePage() {
         tariff_id: tariff.id,
         option_ids: optionIds,
         discount: buildDiscount(discountType, reference),
+        start_date: startDate ?? undefined,
       }
     : null;
   const { quote, error: quoteError, pending } = useQuote(purchased ? null : payload);
@@ -206,13 +124,12 @@ export default function PurchasePage() {
     }
   };
 
-  const discount = DISCOUNTS.find((d) => d.value === discountType);
+  const discount = discountByValue(discountType);
   const missingReference = Boolean(discount.reference) && !reference.trim();
   const canGoNext =
     (step === 0 && tariff) ||
     step === 1 ||
     (step === 2 && !missingReference && !quoteError && !pending);
-  const startsLater = quote && quote.start_date > dayjs().format('YYYY-MM-DD');
 
   return (
     <>
@@ -315,24 +232,30 @@ export default function PurchasePage() {
             </Flex>
           )}
 
+          {step === 3 && !quote && startDate && quoteError && (
+            <Alert
+              type="warning"
+              showIcon
+              title="Обрана дата початку більше недоступна"
+              action={<Button onClick={() => setStartDate(null)}>Обрати іншу</Button>}
+            />
+          )}
+
           {step === 3 && quote && (
             <Card className="soft-card">
               <Flex vertical gap={12}>
                 <Text>
                   Тариф: <Text strong>{tariff.name}</Text>
                 </Text>
+                <div>
+                  <Text>Початок дії</Text>
+                  <StartDatePicker quote={quote} value={startDate} onChange={setStartDate} />
+                </div>
                 <Text>
                   Діє: <Text strong>{dayjs(quote.start_date).format(DATE)}</Text> –{' '}
                   <Text strong>{dayjs(quote.end_date).format(DATE)}</Text>
                   {quote.visits_left !== null && ` · ${visits(quote.visits_left)}`}
                 </Text>
-                {startsLater && (
-                  <Alert
-                    type="info"
-                    showIcon
-                    title="Новий абонемент почнеться після закінчення поточного"
-                  />
-                )}
                 <Radio checked>
                   <CreditCardOutlined /> Онлайн-оплата карткою
                 </Radio>

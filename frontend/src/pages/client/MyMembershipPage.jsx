@@ -14,7 +14,7 @@ import { MembershipStatusTag } from '../../components/StatusTag';
 import VisitsChart from '../../components/VisitsChart';
 import useApi from '../../hooks/useApi';
 import { clubTime, dayjs, ISO_DATE } from '../../utils/dates';
-import { days, formatMoney, TARIFF_TYPE_LABELS, visits } from '../../utils/format';
+import { daysLeftLabel, formatMoney, TARIFF_TYPE_LABELS, visits } from '../../utils/format';
 
 const { Title, Text } = Typography;
 const DATE = 'DD.MM.YYYY';
@@ -54,7 +54,7 @@ function ExpiryBanner({ membership, warningDays }) {
   if (!endsSoon && !fewVisits) return null;
 
   const title = endsSoon
-    ? `Залишилось ${days(membership.days_left)}`
+    ? daysLeftLabel(membership)
     : `Залишилось ${visits(membership.visits_left)}`;
   return (
     <Alert
@@ -77,7 +77,10 @@ function MembershipCard({ membership, tariff }) {
   const start = dayjs(membership.start_date);
   const end = dayjs(membership.end_date);
   const totalDays = end.diff(start, 'day') + 1;
-  const usedPercent = Math.round(((totalDays - membership.days_left) / totalDays) * 100);
+  const started = !start.isAfter(dayjs(), 'day');
+  const usedPercent = started
+    ? Math.round(((totalDays - membership.days_left) / totalDays) * 100)
+    : 0;
   const limit = tariff?.visit_limit;
 
   return (
@@ -102,7 +105,7 @@ function MembershipCard({ membership, tariff }) {
               {start.format(DATE)} – {end.format(DATE)}
             </Title>
           </div>
-          <Text>Залишилось {days(membership.days_left)}</Text>
+          <Text>{daysLeftLabel(membership)}</Text>
         </Flex>
         <Progress
           percent={usedPercent}

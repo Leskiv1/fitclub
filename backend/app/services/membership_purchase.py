@@ -1,7 +1,7 @@
 """Buying a membership (Ф-5): one entry point over factories, pricing, discounts, payment and states."""
 
 from dataclasses import dataclass, field
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 
 from sqlalchemy.orm import Session
@@ -19,6 +19,7 @@ from app.domain.membership.discounts import (
 )
 from app.domain.membership.factories import factory_for
 from app.domain.membership.pricing import PriceLine, build_price
+from app.domain.membership.start_dates import start_options
 from app.domain.models import (
     Client,
     DiscountType,
@@ -32,6 +33,7 @@ from app.domain.models import (
 from app.repositories.clients import ClientRepository
 from app.repositories.memberships import MembershipRepository, PromoCodeRepository
 from app.repositories.tariffs import MembershipOptionRepository, TariffPlanRepository
+from app.services.club_settings import ClubSettingsCache
 
 
 @dataclass(frozen=True)
@@ -60,6 +62,7 @@ class Quote:
     start_date: date
     end_date: date
     visits_left: int | None
+    start_options: list[date] = field(default_factory=list)  # days the buyer may choose instead
 
 
 class PaymentProcessor:
@@ -119,7 +122,8 @@ class MembershipPurchaseFacade:
         self, request: PurchaseRequest, today: date
     ) -> tuple[Client, TariffPlan, list[MembershipOption], Quote]:
         client, tariff, options = self._load(request)
-        start = self._start_date(client, request.start_date, today)
+        allowed = self._start_options(client, today)
+        start = self._start_date(request.start_date, allowed)
         terms = factory_for(tariff.type).create_membership(tariff, start)  # transient, never added
 
         price = build_price(tariff, options)
@@ -141,6 +145,7 @@ class MembershipPurchaseFacade:
             start_date=terms.start_date,
             end_date=terms.end_date,
             visits_left=terms.visits_left,
+            start_options=allowed,
         )
         return client, tariff, options, quote
 
@@ -164,15 +169,31 @@ class MembershipPurchaseFacade:
             options.append(option)
         return client, tariff, options
 
-    def _start_date(self, client: Client, requested: date | None, today: date) -> date:
-        """A purchase during a running membership continues it from the next day (renewal)."""
-        if requested is not None and requested < today:
-            raise BusinessRuleError("Дата початку не може бути в минулому")
-        start = requested or today
-        running = self.memberships.latest_running(client.id, start)
-        if running is not None:
-            start = max(start, running.end_date + timedelta(days=1))
-        return start
+    def _start_options(self, client: Client, today: date) -> list[date]:
+        """Days the club works, from the first usable one for a month; a purchase during a running
+        membership continues it, so the choice starts the day after it ends (renewal)."""
+        running = self.memberships.latest_running(client.id, today)
+        not_before = running.end_date + timedelta(days=1) if running is not None else today
+        now = self.clock.now()
+        if now.date() != today:  # a quote "as of" another day (tests): treat it as that day's start
+            now = datetime.combine(today, time.min, tzinfo=self.clock.zone)
+        hours = ClubSettingsCache().get(self.session).opening_hours  # GoF Singleton
+        return start_options(hours, now, not_before)
+
+    @staticmethod
+    def _start_date(requested: date | None, allowed: list[date]) -> date:
+        """The first allowed day by default; a chosen day must be one of the allowed ones."""
+        if not allowed:
+            raise BusinessRuleError("Найближчим часом клуб не працює — оформити абонемент неможливо")
+        if requested is None:
+            return allowed[0]
+        if requested < allowed[0]:
+            raise BusinessRuleError(f"Абонемент може початися не раніше {allowed[0]:%d.%m.%Y}")
+        if requested > allowed[-1]:
+            raise BusinessRuleError(f"Абонемент може початися не пізніше {allowed[-1]:%d.%m.%Y}")
+        if requested not in allowed:
+            raise BusinessRuleError(f"{requested:%d.%m.%Y} клуб не працює — оберіть інший день")
+        return requested
 
     def _discount_strategy(self, discount: DiscountRequest | None) -> DiscountStrategy:
         if discount is None:

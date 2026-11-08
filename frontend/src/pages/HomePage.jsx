@@ -1,9 +1,15 @@
 import { useState } from 'react';
-import { ClockCircleOutlined, EnvironmentOutlined, MailOutlined } from '@ant-design/icons';
+import {
+  ClockCircleOutlined,
+  EnvironmentOutlined,
+  MailOutlined,
+  PhoneOutlined,
+} from '@ant-design/icons';
 import { Button, Card, Col, Empty, Flex, Row, Tag, Typography } from 'antd';
 import { Link } from 'react-router-dom';
 import { fetchOptions, fetchSettings, fetchTariffs, fetchTrainers } from '../api/catalog';
 import { fetchWeekSessions } from '../api/sessions';
+import heroTrainer from '../assets/hero-trainer.jpg';
 import { CLIENT } from '../auth/roles';
 import useAuth from '../auth/useAuth';
 import LoadError from '../components/LoadError';
@@ -12,16 +18,21 @@ import SessionRow from '../components/SessionRow';
 import TrainerAvatar from '../components/TrainerAvatar';
 import WeekDayPicker from '../components/WeekDayPicker';
 import useApi from '../hooks/useApi';
+import useSectionHash, { scrollToSection } from '../hooks/useSectionHash';
 import { clubTime, dayjs, ISO_DATE, weekStart } from '../utils/dates';
 import {
   formatMoney,
   groupOpeningHours,
+  sortTariffs,
   TARIFF_TYPE_LABELS,
   tariffSummary,
   WEEKDAYS_SHORT,
 } from '../utils/format';
 
 const { Title, Text, Paragraph } = Typography;
+
+// Sections the hero buttons lead to; the URL hash follows them while scrolling
+const SECTION_IDS = ['tariffs', 'schedule'];
 
 async function loadLanding() {
   const [tariffs, options, trainers, settings, sessions] = await Promise.all([
@@ -32,7 +43,7 @@ async function loadLanding() {
     fetchWeekSessions({ kind: 'group' }),
   ]);
   return {
-    tariffs: tariffs.filter((t) => t.is_active),
+    tariffs: sortTariffs(tariffs.filter((t) => t.is_active)),
     options: options.filter((o) => o.is_active),
     trainers,
     settings,
@@ -45,12 +56,47 @@ function workDays(trainer) {
   return days.map((d) => WEEKDAYS_SHORT[d]).join(', ');
 }
 
+function HeroStat({ value, label }) {
+  return (
+    <div className="hero__stat">
+      <strong>{value}</strong>
+      <span>{label}</span>
+    </div>
+  );
+}
+
+// Every card has the same rows in the same order; the description stretches,
+// so prices line up and the "Обрати" buttons sit on one line across a row
+function TariffCard({ tariff, canBuy }) {
+  return (
+    <Card className="soft-card tariff-card">
+      <Tag color="orange" className="tariff-card__tag">
+        {TARIFF_TYPE_LABELS[tariff.type]}
+      </Tag>
+      <Title level={4} ellipsis={{ tooltip: tariff.name }} className="tariff-card__name">
+        {tariff.name}
+      </Title>
+      <span className="price">{formatMoney(tariff.price)}</span>
+      <Text type="secondary">{tariffSummary(tariff)}</Text>
+      <Paragraph className="tariff-card__description">{tariff.description}</Paragraph>
+      {canBuy && (
+        <Link to={`/my/purchase?tariff=${tariff.id}`}>
+          <Button type="primary" size="large" block>
+            Обрати
+          </Button>
+        </Link>
+      )}
+    </Card>
+  );
+}
+
 // Public landing: tariffs, trainers, this week's group schedule, club hours (guest use cases)
 export default function HomePage() {
   const { user } = useAuth();
   const { data, error, loading, reload } = useApi(loadLanding);
   const monday = weekStart(dayjs());
   const [day, setDay] = useState(() => (dayjs().day() + 6) % 7);
+  useSectionHash(Boolean(data), SECTION_IDS);
 
   if (loading && !data) return <PageSpinner />;
   if (error && !data) return <LoadError error={error} onRetry={reload} />;
@@ -67,34 +113,29 @@ export default function HomePage() {
     <>
       <section className="hero">
         <div className="hero__inner">
-          <h1>FitClub — простір твоєї трансформації</h1>
-          <p>
-            Сучасний фітнес-клуб: групові програми, персональні тренування з сертифікованими
-            тренерами та абонементи під ваш ритм.
-          </p>
-          <Flex gap={12} wrap>
-            <a href="#tariffs">
-              <Button type="primary" size="large">
+          <div className="hero__content">
+            <h1>FitClub — простір твоєї трансформації</h1>
+            <p>
+              Сучасний фітнес-клуб: групові програми, персональні тренування з сертифікованими
+              тренерами та абонементи під ваш ритм.
+            </p>
+            <Flex gap={12} wrap>
+              <Button type="primary" size="large" onClick={() => scrollToSection('tariffs')}>
                 Обрати абонемент
               </Button>
-            </a>
-            <a href="#schedule">
-              <Button size="large" ghost>
+              <Button size="large" ghost onClick={() => scrollToSection('schedule')}>
                 Розклад занять
               </Button>
-            </a>
-          </Flex>
-          <Flex gap={40} className="hero__stats" wrap>
-            <span>
-              <strong>{trainers.length}</strong>тренерів
-            </span>
-            <span>
-              <strong>{sessions.length}</strong>групових занять цього тижня
-            </span>
-            <span>
-              <strong>{tariffs.length}</strong>тарифів
-            </span>
-          </Flex>
+            </Flex>
+            <div className="hero__stats">
+              <HeroStat value={trainers.length} label="тренерів" />
+              <HeroStat value={sessions.length} label="групових занять цього тижня" />
+              <HeroStat value={tariffs.length} label="тарифів" />
+            </div>
+          </div>
+          <div className="hero__photo">
+            <img src={heroTrainer} alt="Тренер FitClub у залі клубу" />
+          </div>
         </div>
       </section>
 
@@ -102,29 +143,10 @@ export default function HomePage() {
         <section id="tariffs" className="section">
           <Title level={2}>Тарифи та абонементи</Title>
           <Text className="page-subtitle">Ціна залежить від тарифу, опцій і знижки</Text>
-          <Row gutter={[16, 16]}>
+          <Row gutter={[24, 24]}>
             {tariffs.map((tariff) => (
-              <Col key={tariff.id} xs={24} sm={12} lg={6}>
-                <Card className="soft-card" style={{ height: '100%' }}>
-                  <Flex vertical gap={8} style={{ height: '100%' }}>
-                    <Tag color="orange" style={{ alignSelf: 'flex-start' }}>
-                      {TARIFF_TYPE_LABELS[tariff.type]}
-                    </Tag>
-                    <Title level={4} style={{ margin: 0 }}>
-                      {tariff.name}
-                    </Title>
-                    <span className="price">{formatMoney(tariff.price)}</span>
-                    <Text type="secondary">{tariffSummary(tariff)}</Text>
-                    {tariff.description && <Text>{tariff.description}</Text>}
-                    {canBuy && (
-                      <Link to={`/my/purchase?tariff=${tariff.id}`} style={{ marginTop: 'auto' }}>
-                        <Button type="primary" block>
-                          Обрати
-                        </Button>
-                      </Link>
-                    )}
-                  </Flex>
-                </Card>
+              <Col key={tariff.id} xs={24} md={12} lg={8}>
+                <TariffCard tariff={tariff} canBuy={canBuy} />
               </Col>
             ))}
           </Row>
@@ -195,9 +217,12 @@ export default function HomePage() {
           <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
             <Col xs={24} md={12}>
               <Card className="soft-card" style={{ height: '100%' }}>
-                <Flex vertical gap={12}>
+                <Flex vertical gap={8}>
                   <Text>
                     <EnvironmentOutlined /> м. Київ, вул. Спортивна, 14
+                  </Text>
+                  <Text>
+                    <PhoneOutlined /> +380 44 123 45 67
                   </Text>
                   <Text>
                     <MailOutlined /> info@fitclub.example

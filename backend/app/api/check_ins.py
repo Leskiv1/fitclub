@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 
 from app.api.deps import (
     STAFF_ONLY,
@@ -15,7 +15,7 @@ from app.api.deps import (
 )
 from app.api.errors import ERROR_RESPONSES
 from app.schemas.common import Page
-from app.schemas.visits import CheckInIn, TodayVisitRead, VisitRead
+from app.schemas.visits import CheckInIn, DailyVisitsRead, TodayVisitRead, VisitRead
 from app.services.check_in import CheckInFacade
 
 router = APIRouter(tags=["Відвідування"], responses=ERROR_RESPONSES)
@@ -43,6 +43,18 @@ def check_in(data: CheckInIn, facade: CheckInFacadeDep) -> VisitRead:
 @router.get("/check-ins/today", summary="Хто прийшов сьогодні (рецепція)", dependencies=STAFF_ONLY)
 def visits_today(facade: CheckInFacadeDep) -> list[TodayVisitRead]:
     return [TodayVisitRead.from_model(v, facade.clock.zone) for v in facade.visits_today()]
+
+
+@router.get(
+    "/check-ins/daily",
+    summary="Кількість відвідувань по днях (дашборд)",
+    description="Останні `days` днів до сьогодні включно за часом клубу; дні без відвідувань — з нулем.",
+    dependencies=STAFF_ONLY,
+)
+def visits_daily(
+    facade: CheckInFacadeDep, days: Annotated[int, Query(ge=1, le=90)] = 14
+) -> list[DailyVisitsRead]:
+    return [DailyVisitsRead(date=day, visits=count) for day, count in facade.daily_counts(days)]
 
 
 @router.get("/clients/{client_id}/visits", summary="Історія відвідувань клієнта")
